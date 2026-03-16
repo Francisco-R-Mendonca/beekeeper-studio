@@ -969,9 +969,9 @@ export default Vue.extend({
       if (!this.focusingTable() || !this.editable) return
       pasteRange(_.last(this.tabulator.getRanges()))
     },
-    deleteTableSelection(_e: Event, range?: RangeComponent) {
+    deleteTableSelection(_e: Event) {
       if (!this.focusingTable() || !this.editable) return
-      const rows = range ? range.getRows() : this.getSelectedRows()
+      const rows = this.getSelectedRows()
       this.addRowsToPendingDeletes(rows);
     },
     headerFormatter(_cell, formatterParams) {
@@ -1106,7 +1106,9 @@ export default Vue.extend({
       this.filters = normalizeFilters(this.tableFilters || [])
     },
     rowActionsMenu(range: RangeComponent) {
-      const rowRangeLabel = `${range.getTopEdge() + 1} - ${range.getBottomEdge() + 1}`
+      const top = range.getTopEdge() + 1
+      const bottom = range.getBottomEdge() + 1
+      const rowRangeLabel = `${top} - ${bottom}`
       return [
         {
           label:
@@ -1117,13 +1119,19 @@ export default Vue.extend({
           disabled: !this.editable,
         },
         {
-          label:
-            range.getTopEdge() === range.getBottomEdge()
-              ? createMenuItem("Delete row", "Delete")
-              : createMenuItem(`Delete rows ${rowRangeLabel}`, "Delete"),
+          label: () => {
+            const nRows = this.getSelectedRows().length
+            if (nRows === 1) {
+              return createMenuItem("Delete row", "Delete")
+            } else if (nRows === (bottom - top + 1)) {
+              return createMenuItem(`Delete rows ${rowRangeLabel}`, "Delete")
+            } else {
+              return createMenuItem(`Delete selected rows (${nRows})`, "Delete")
+            }
+          },
           action: () => {
             this.tabulator.rowManager.element.focus()
-            this.deleteTableSelection(undefined, range)
+            this.deleteTableSelection()
           },
           disabled: !this.editable,
         },
